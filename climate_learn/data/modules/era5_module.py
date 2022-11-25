@@ -83,7 +83,7 @@ class ERA5(Dataset):
         pass
 
 class ERA5Forecasting(ERA5):
-    def __init__(self, root_dir, root_highres_dir, in_vars, out_vars, history, window, pred_range, years, subsample=1, split='train'):
+    def __init__(self, root_dir, root_highres_dir, in_vars, out_vars, history, window, pred_range, years, subsample=1, split='train', classification = "none"):
         print (f'Creating {split} dataset')
         super().__init__(root_dir, root_highres_dir, in_vars, years, split)
         
@@ -96,7 +96,13 @@ class ERA5Forecasting(ERA5):
         inp_data = xr.concat([self.data_dict[k] for k in self.in_vars], dim='level')
         out_data = xr.concat([self.data_dict[k] for k in self.out_vars], dim='level')
         self.inp_data = inp_data.to_numpy().astype(np.float32)
-        self.out_data = out_data.to_numpy().astype(np.float32)
+        if classification == "none":
+            self.out_data = out_data.to_numpy().astype(np.float32)
+        elif classification == "heat":
+            self.out_data = np.digitize(out_data.to_numpy(), bins=[310]).astype(np.float32)
+        else:
+            raise NotImplementedError(f'{name} is not a valid classificaiton')
+
 
         constants_data = [self.constants[k].to_numpy().astype(np.float32) for k in self.constants.keys()]
         if len(constants_data) > 0:
@@ -162,7 +168,7 @@ class ERA5Forecasting(ERA5):
         return len(self.inp_data) - ((self.history - 1) * self.window + self.pred_range)
 
 class ERA5Downscaling(ERA5):
-    def __init__(self, root_dir, root_highres_dir, in_vars, out_vars, history, window, pred_range, years, subsample=1, split='train'):
+    def __init__(self, root_dir, root_highres_dir, in_vars, out_vars, history, window, pred_range, years, subsample=1, split='train', classification = "none"):
         print (f'Creating {split} dataset')
         super().__init__(root_dir, root_highres_dir, in_vars, years, split)
         
@@ -174,7 +180,13 @@ class ERA5Downscaling(ERA5):
         out_data = xr.concat([self.data_highres_dict[k] for k in out_vars], dim='level')
 
         self.inp_data = inp_data[::subsample].to_numpy().astype(np.float32)
-        self.out_data = out_data[::subsample].to_numpy().astype(np.float32)
+        if classification == "none":
+            self.out_data = out_data[::subsample].to_numpy().astype(np.float32)
+        elif classification == "heat":
+            self.out_data = np.digitize(out_data[::subsample].to_numpy(), bins=[310]).astype(np.float32)
+        else:
+            raise NotImplementedError(f'{name} is not a valid classificaiton')
+
 
         constants_data = [self.constants[k].to_numpy().astype(np.float32) for k in self.constants.keys()]
         if len(constants_data) > 0:
